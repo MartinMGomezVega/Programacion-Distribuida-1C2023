@@ -1,12 +1,39 @@
-<!-- Ejecutar el cliente y servidor Echo
-Se ejecutará el cliente y el servidor para ver cómo se comportan e inspeccionar lo que sucede.
+<!-- Ejecutar el cliente y servidor -->
 
-Abra una terminal o símbolo del sistema, navegue hasta el directorio que contiene sus scripts,
-asegúrese de tener Python 3.6 o superior instalado y en su ruta, luego ejecute el servidor: -->
-
+Shell 1 - Servidor
 $ python server.py
 
-% Su terminal parecerá colgarse. Eso es porque el servidor está bloqueado o suspendido el .accept():
-
-% Está esperando una conexión de cliente. Ahora, abra otra ventana de terminal o símbolo del sistema y ejecute el cliente:
+Shell 2 - Cliente
 $ python client.py
+
+<!-- Ejecutar el manejo de multiples conexiones -->
+
+Shell 1 - Servidor
+$ python multiconn-server.py 127.0.0.1 65432
+
+Shell 2 - Cliente
+$ python multiconn-client.py 127.0.0.1 65432 2
+
+<!-- Cliente y servidor de aplicaciones -->
+
+Shell 1 - Servidor
+python app-server.py '127.0.0.1' 65432
+
+Shell 2 - Cliente
+python app-client.py 127.0.0.1 65432 search morpheus
+
+<!-- Troubleshooting - Solución de problemas-->
+<!-- ping -->
+
+Shell
+ping -c 3 127.0.0.1
+
+<!-- netstat -->
+
+Shell
+netstat -an | grep 65432
+
+<!-- Wireshark -->
+
+Shell
+tshark -i lo0 'tcp port 65432'
