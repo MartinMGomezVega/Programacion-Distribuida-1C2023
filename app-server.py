@@ -61,6 +61,7 @@ try:
                         f"Main: Error: Exception for {message.addr}:\n"
                         f"{traceback.format_exc()}"
                     )
+                    # Cierra el mensaje
                     message.close()
                     
 # En caso de que se produzca una excepción durante el procesamiento de los eventos de una conexión:
