@@ -14,12 +14,18 @@ Cuando se recibe un evento de escritura en una conexión, se envía
 
 sel = selectors.DefaultSelector()
 
+# accept_wrapper: acepta una nueva conexión de un clien
 def accept_wrapper(sock):
+    # acepta la nueva conexión y obtiene el objeto 'conn' que representa el nuevo socket de la conexión y la tupla 'addr' que contiene la dirección del cliente.
     conn, addr = sock.accept()  # Should be ready to read
+    # Imprime un mensaje indicando que se ha aceptado la conexión del cliente.
     print(f"Accepted connection from {addr}")
+    # Establece el socket en modo no bloqueante
     conn.setblocking(False)
+    # Crea un objeto data de tipo 'types.SimpleNamespace()' contiene la dirección del cliente addr, un búfer de entrada inb y un búfer de salida outb.
     data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"")
     events = selectors.EVENT_READ | selectors.EVENT_WRITE
+    # Registra el socket 'conn' en el selector sel para que se puedan monitorear eventos de lectura y escritura en este socket.
     sel.register(conn, events, data=data)
 
 def service_connection(key, mask):
