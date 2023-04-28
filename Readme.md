@@ -20,7 +20,7 @@ Shell 1 - Servidor
 python app-server.py '127.0.0.1' 65432
 
 Shell 2 - Cliente
-python app-client.py 127.0.0.1 65432 search morpheus
+v
 
 <!-- Troubleshooting - Solución de problemas-->
 <!-- ping -->
