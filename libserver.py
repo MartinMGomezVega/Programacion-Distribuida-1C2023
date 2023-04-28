@@ -5,14 +5,18 @@ import json
 import io
 import struct
 
+#  Las claves son cadenas de texto que representan diferentes "solicitudes" que un cliente puede enviar al servidor. 
+# Los valores son las respuestas correspondientes que el servidor debe enviar de vuelta al cliente.
 request_search = {
     "morpheus": "Follow the white rabbit. \U0001f430",
     "ring": "In the caves beneath the Misty Mountains. \U0001f48d",
     "\U0001f436": "\U0001f43e Playing ball! \U0001f3d0",
 }
 
-
+#  Message: proporciona una estructura básica para crear un servidor que recibe y envía mensajes a través de sockets.
+#  es responsable de recibir datos de un cliente, procesar esos datos y enviar una respuesta al cliente
 class Message:
+    # Inicializacion de las variables
     def __init__(self, selector, sock, addr):
         self.selector = selector
         self.sock = sock
@@ -24,18 +28,25 @@ class Message:
         self.request = None
         self.response_created = False
 
+    # Modifica el objeto del selector para escuchar eventos de lectura, escritura o ambos.
     def _set_selector_events_mask(self, mode):
         """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
+        # lectura
         if mode == "r":
+            # lee datos del socket y los agrega al buffer de recepción.
             events = selectors.EVENT_READ
+        # escritura
         elif mode == "w":
+            # envia datos desde el buffer de envío al socket.
             events = selectors.EVENT_WRITE
+        # lectura y escritura
         elif mode == "rw":
             events = selectors.EVENT_READ | selectors.EVENT_WRITE
         else:
             raise ValueError(f"Invalid events mask mode {mode!r}.")
         self.selector.modify(self.sock, events, data=self)
 
+    # _read: Lee datos del socket y los agrega al buffer de recepción.
     def _read(self):
         try:
             # Should be ready to read
@@ -45,36 +56,46 @@ class Message:
             pass
         else:
             if data:
+                # se han recibido datos del socket y se agregan los datos al búfer de recepción
                 self._recv_buffer += data
             else:
+                # No se recibieron datos, significa que el par en el otro extremo del socket ha cerrado la conexión de manera abrupta
                 raise RuntimeError("Peer closed.")
 
+    # _write: envia datos desde el buffer de envío al socket.
     def _write(self):
+        # Verifica que haya contenido en el buffer
         if self._send_buffer:
             print(f"Sending {self._send_buffer!r} to {self.addr}")
             try:
-                # Should be ready to write
+                # Envia los datos a traves del socket y devuelve el nro de bytes enviados
                 sent = self.sock.send(self._send_buffer)
             except BlockingIOError:
                 # Resource temporarily unavailable (errno EWOULDBLOCK)
                 pass
             else:
-                self._send_buffer = self._send_buffer[sent:]
+                # Actualizar el buffer de envío para eliminar los datos que ya se han enviado correctamente
+                self._send_buffer = self._send_buffer[sent:] #  se actualiza para eliminar los bytes ya enviados.
                 # Close when the buffer is drained. The response has been sent.
                 if sent and not self._send_buffer:
+                    # cerrar el socket:
                     self.close()
 
+    # _json_encode: codifica el objeto obj en formato JSON, y luego lo convierte a bytes utilizando el tipo de codificación especificado por el parámetro encoding
     def _json_encode(self, obj, encoding):
         return json.dumps(obj, ensure_ascii=False).encode(encoding)
-
+    
+    # _json_decode: decodifica una cadena de bytes que contiene datos en formato JSON y la convierte en un objeto 
     def _json_decode(self, json_bytes, encoding):
+        # io.TextIOWrapper: envuelve un objeto BytesIO que contiene los bytes en formato JSON y se utiliza la codificación especificada para convertir los bytes en caracteres Unicode
         tiow = io.TextIOWrapper(
             io.BytesIO(json_bytes), encoding=encoding, newline=""
         )
-        obj = json.load(tiow)
+        obj = json.load(tiow) # decodificar los datos JSON en un objeto 
         tiow.close()
         return obj
 
+    # _create_message: crea un mensaje que contiene el encabezado JSON y los bytes de contenido proporcionados
     def _create_message(
         self, *, content_bytes, content_type, content_encoding
     ):
@@ -85,14 +106,17 @@ class Message:
             "content-length": len(content_bytes),
         }
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
-        message_hdr = struct.pack(">H", len(jsonheader_bytes))
+        # struct.pack:  Empacar la longitud del header en dos bytes
+        message_hdr = struct.pack(">H", len(jsonheader_bytes)) # La letra "H" indica que se deben empaquetar dos bytes como un número entero sin signo
         message = message_hdr + jsonheader_bytes + content_bytes
         return message
 
+    # _create_response_json_content: Crea un contenido de respuesta en formato JSON, que se utiliza en las respuestas del servidor a las solicitudes de búsqueda
     def _create_response_json_content(self):
         action = self.request.get("action")
-        if action == "search":
+        if action == "search": # Busqueda
             query = self.request.get("value")
+            # busca una coincidencia en un diccionario predefinido:
             answer = request_search.get(query) or f"No match for '{query}'."
             content = {"result": answer}
         else:
@@ -105,6 +129,7 @@ class Message:
         }
         return response
 
+    # _create_response_binary_content: Crea un contenido de respuesta en formato binario, que se utiliza en las respuestas del servidor a las solicitudes que no son de búsqueda
     def _create_response_binary_content(self):
         response = {
             "content_bytes": b"First 10 bytes of request: "
@@ -114,36 +139,46 @@ class Message:
         }
         return response
 
+    # process_events: es llamado cuando hay eventos pendientes en el socket, y ejecuta los métodos read y write dependiendo del tipo de evento
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
             self.read()
         if mask & selectors.EVENT_WRITE:
             self.write()
 
+    # read: procesa los datos que se han leído desde el socket
     def read(self):
-        self._read()
+        self._read() # lee los datos del socket y los almacena en el buffer de recepción
 
         if self._jsonheader_len is None:
+            # la longitud del encabezado JSON aún no se ha recibido completamente
             self.process_protoheader()
 
         if self._jsonheader_len is not None:
+            # Se recibio el encabezado JSON
             if self.jsonheader is None:
                 self.process_jsonheader()
 
         if self.jsonheader:
+            # se proceso correctamente
             if self.request is None:
                 self.process_request()
 
+    # write: verifica si hay una solicitud pendiente que debe ser respondida
     def write(self):
         if self.request:
             if not self.response_created:
+                # crear la respuesta:
                 self.create_response()
 
+        # envía los datos de respuesta al socket
         self._write()
 
+    # close: cierra la conexión
     def close(self):
         print(f"Closing connection to {self.addr}")
         try:
+            #  elimina el socket del selector
             self.selector.unregister(self.sock)
         except Exception as e:
             print(
@@ -152,28 +187,38 @@ class Message:
             )
 
         try:
+            # cierra el socket
             self.sock.close()
         except OSError as e:
             print(f"Error: socket.close() exception for {self.addr}: {e!r}")
         finally:
             # Delete reference to socket object for garbage collection
+            # establece la variable del socket en None
             self.sock = None
 
+    # process_protoheader: procesa el encabezado del protocolo y determina la longitud del encabezado JSON
     def process_protoheader(self):
         hdrlen = 2
+        # Si el tamaño del buffer de recepción (_recv_buffer) es mayor o igual a 2
         if len(self._recv_buffer) >= hdrlen:
+            #  se extrae el tamaño de la cabecera (_jsonheader_len) a partir de los primeros dos bytes 
             self._jsonheader_len = struct.unpack(
                 ">H", self._recv_buffer[:hdrlen]
             )[0]
+            # se actualiza el buffer de recepción para eliminar esos dos bytes
             self._recv_buffer = self._recv_buffer[hdrlen:]
 
+    # process_jsonheader: Procesa el encabezado JSON y verifica que se proporcionen todos los encabezados necesarios
     def process_jsonheader(self):
         hdrlen = self._jsonheader_len
+        # Verifica si se ha recibido suficiente información para analizar el encabezado completo
         if len(self._recv_buffer) >= hdrlen:
+            # se decodifica el encabezado JSON
             self.jsonheader = self._json_decode(
                 self._recv_buffer[:hdrlen], "utf-8"
             )
             self._recv_buffer = self._recv_buffer[hdrlen:]
+            # verifica si se han recibido todos los encabezados requeridos
             for reqhdr in (
                 "byteorder",
                 "content-length",
@@ -181,14 +226,19 @@ class Message:
                 "content-encoding",
             ):
                 if reqhdr not in self.jsonheader:
+                    # Si falta alguno de los encabezados, se genera la excepción
                     raise ValueError(f"Missing required header '{reqhdr}'.")
 
+    # process_request: procesa la solicitud y almacena los datos de la solicitud en el atributo request
     def process_request(self):
+        # Se obtiene la longitud de contenido de la solicitud del cliente de la cabecera JSON
         content_len = self.jsonheader["content-length"]
         if not len(self._recv_buffer) >= content_len:
             return
+        # se extrae el contenido de la solicitud y se almacena en la variable data
         data = self._recv_buffer[:content_len]
         self._recv_buffer = self._recv_buffer[content_len:]
+        # Si el tipo de contenido es "text/json", se decodifica el contenido utilizando la codificación especificada en la cabecera JSON y se almacena
         if self.jsonheader["content-type"] == "text/json":
             encoding = self.jsonheader["content-encoding"]
             self.request = self._json_decode(data, encoding)
@@ -203,12 +253,18 @@ class Message:
         # Set selector to listen for write events, we're done reading.
         self._set_selector_events_mask("w")
 
+    # create_response: Crea la respuesta y almacena el mensaje en el atributo _send_buffer
     def create_response(self):
+        # _create_response_json_content: crea y devuelve una respuesta con contenido JSON
         if self.jsonheader["content-type"] == "text/json":
             response = self._create_response_json_content()
         else:
             # Binary or unknown content-type
+            # _create_response_binary_content: crea y devuelve una respuesta con contenido Binario
             response = self._create_response_binary_content()
+        
+        # crea un mensaje completo a partir de los argumentos proporcionados, incluyendo el encabezado y el contenido del mensaje
         message = self._create_message(**response)
         self.response_created = True
+        # Almacena el message en el atributo _send_buffer
         self._send_buffer += message
