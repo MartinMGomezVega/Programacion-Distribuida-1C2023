@@ -8,8 +8,12 @@ def ejecutarRemoto(function_name, param1, param2 ):
 import socket
 import json
    
-def ejecutarRemoto2(host, port, funcion, *params):
+def ejecutarRemoto2(host, port, funcion, param1, param2):
     try:
+        params = []
+        params.Append(param1)
+        params.Append(param2)
+        
         # Crear una conexión TCP con el servidor
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((host, port))

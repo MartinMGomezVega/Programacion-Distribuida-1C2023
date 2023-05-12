@@ -25,3 +25,7 @@ función y recibe el resultado. Adicionalmente puede arrojar excepciones para co
 - La librería funciones.py (puede no estar si agregan las funciones en el programa servidor directamente) son las funciones que va a resolver el
 servidor (que son las mismas que tienen la anotación RPC en p.py).
 - Se pueden utilizar expresiones regulares para que rpc.py genere el cliente y el servidor.
+
+
+
+python .\rpc.py p.py
