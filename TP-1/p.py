@@ -1,11 +1,9 @@
 import time
 
-# sumar: Funcion de suma de dos nros
 def sumar(x, y):
 	return (x + y)
 
 #RPC
-# multiplicar: Funcion de multiplicar
 def multiplicar(x,y):
 	return (x * y)
 

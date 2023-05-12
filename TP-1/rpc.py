@@ -1,19 +1,17 @@
 import sys
 import re
-import p
-import funciones
-import cliente.py
 
 SERVER_FILE_NAME = "p_server.py"
 CLIENT_FILE_NAME = "p_client.py"
 CONFIG_RPC_NAME = "rpc.conf"
+SERVERFILE = "servidor.py"
 
 def main(file_name):
     create_client_file(file_name)
     create_server_file()
 
 def create_client_file(file_name):
-    config_lines = open_file(CONFIG_RPC_NAME)
+    host, port = get_port_and_host(open_file(CONFIG_RPC_NAME))
     p_client = []
     with open(file_name) as archivo:
         lines = archivo.readlines()
@@ -25,26 +23,40 @@ def create_client_file(file_name):
                 return_index = function_name_index + 1
                 function_name, param1, param2 =get_function_properties(str(lines[function_name_index]))
                 lines[return_index] = "\t return cliente.ejecutarRemoto('{}', {}, {}) \n".format(function_name, param1, param2)
+                continue
             p_client.append(line)
     
-    p_client.insert(0, "import cliente \n")
+    p_client.insert(0, "from cliente import Cliente \n")
+    p_client.insert(3,"\ncliente = Cliente(\"{}\",{})\n\n".format(host.strip(), port.strip()))
     create_file(CLIENT_FILE_NAME, p_client)
 
 def open_file(file_name):
     with open(file_name) as f:
         return f.readlines()
+    
+def get_port_and_host(config_lines):
+    host = config_lines[0].split(":")[1].replace("\n","")
+    port = config_lines[1].split(":")[1]
+    return host, port
 
 def create_server_file():
-    config_lines = open_file(CONFIG_RPC_NAME)
+    server_file = open_file(SERVERFILE)
+    host, port = get_port_and_host(open_file(CONFIG_RPC_NAME))
 
-    print(config_lines)
-    p_server = []
-    p_server.append("import funciones \n")
+    p_server = server_file
+    p_server.insert(0,"import funciones \n")
     p_server.append("\n")
-    p_server.append("def atenderCliente(msg):\n")
-    p_server.append("\tfunc, param1, param2 = msg.split(',')\n")
-    p_server.append("\tresultado = funciones.func(param1, param2)\n")
-    p_server.append("\t#comunicamos con el cliente y le mandamos el resultado")
+    p_server.insert(7,"HOST= \"{}\"\n".format(host.strip()))
+    p_server.insert(8,"PORT= {}\n".format(port.strip()))
+    p_server.insert(9,"\n")
+    p_server.insert(10,"def atenderCliente(msg):\n")
+    p_server.insert(11,"\tfunc  = msg[\"funcion\"]\n")
+    p_server.insert(12,"\tparam1 =msg[\"params\"][0]\n")
+    p_server.insert(13,"\tparam2 =msg[\"params\"][1]\n")
+    p_server.insert(14,"\tresultado = funciones.multiplicar(param1, param2)\n")
+    p_server.insert(15,"\tresponse={\"result\":resultado}\n")
+    p_server.insert(16,"\treturn json.dumps(response).encode(\"utf-8\")\n")
+    
 
     create_file(SERVER_FILE_NAME, p_server)
     
