@@ -1,5 +1,8 @@
 import sys
 import re
+import p
+import funciones
+import cliente.py
 
 SERVER_FILE_NAME = "p_server.py"
 CLIENT_FILE_NAME = "p_client.py"
