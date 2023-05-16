@@ -8,13 +8,11 @@ class Cliente:
     
     def ejecutarRemoto(self, function_name, param1, param2 ):
         try:
-            params = []
-            params.append(param1)
-            params.append(param2)
+            params = [param1, param2]            
             
             # Crear una conexión TCP con el servidor
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(("127.0.0.1", 8080))
+            sock.connect((str(self.host), self.port))
 
             # Crear el mensaje de solicitud en formato JSON
             request = {
