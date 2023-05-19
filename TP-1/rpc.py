@@ -54,11 +54,8 @@ def create_server_file():
     p_server.insert(12,"\tparam1 =msg[\"params\"][0]\n")
     p_server.insert(13,"\tparam2 =msg[\"params\"][1]\n")
     
-    # Multiplicar:
     # p_server.insert(14,"\tresultado = funciones.multiplicar(param1, param2)\n")
-    p_server.insert(14, '\tresultado = eval("multiplicar(param1, param2)", {"multiplicar": __import__("funciones").multiplicar, "param1": param1, "param2": param2})\n')
-    # Sumar:
-    p_server.insert(14, '\tresultado = eval("sumar(param1, param2)", {"sumar": __import__("funciones").sumar, "param1": param1, "param2": param2})\n')
+    p_server.insert(14, '\tresultado = eval("func(param1, param2)", {"func": __import__("funciones").func, "param1": param1, "param2": param2})\n')
     
     p_server.insert(15,"\tresponse={\"result\":resultado}\n")
     p_server.insert(16,"\treturn json.dumps(response).encode(\"utf-8\")\n")
