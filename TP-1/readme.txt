@@ -27,5 +27,11 @@ servidor (que son las mismas que tienen la anotación RPC en p.py).
 - Se pueden utilizar expresiones regulares para que rpc.py genere el cliente y el servidor.
 
 
-
+Comando: 
 python .\rpc.py p.py
+
+
+En Python, eval() es una función incorporada que evalúa una expresión o código Python dado como una cadena y devuelve el resultado de esa evaluación. 
+Básicamente, toma una cadena que representa una expresión o instrucción Python y la ejecuta como código Python en tiempo de ejecución.
+La sintaxis básica de eval() es la siguiente:
+                                        eval(expresión, globals=None, locals=None)
