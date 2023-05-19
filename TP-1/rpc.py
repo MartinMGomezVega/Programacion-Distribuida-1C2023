@@ -56,7 +56,7 @@ def create_server_file():
     
     p_server.insert(14,'\tfunciones_module = __import__("funciones")\n')
     p_server.insert(15,'\tfunciones = getattr(funciones_module, func)\n')
-    p_server.insert(16,'\tresultado = eval(f"{func}({param1}, {param2})", {"func": {funciones}, "param1": {param1}, "param2": {param2}})\n')
+    p_server.insert(16,'\tresultado = funciones(param1,param2)\n')
         
     p_server.insert(17,"\tresponse={\"result\":resultado}\n")
     p_server.insert(18,"\treturn json.dumps(response).encode(\"utf-8\")\n")
