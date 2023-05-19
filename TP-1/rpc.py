@@ -60,7 +60,6 @@ def create_server_file():
     p_server.insert(15,"\tresponse={\"result\":resultado}\n")
     p_server.insert(16,"\treturn json.dumps(response).encode(\"utf-8\")\n")
     
-
     create_file(SERVER_FILE_NAME, p_server)
     
 
