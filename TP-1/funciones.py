@@ -1,4 +1,4 @@
-def sumar(x, y):
+def sumar(x,y):
 	return (x + y)
-def multiplicar(x, y):
+def multiplicar(x,y):
 	return (x * y)
