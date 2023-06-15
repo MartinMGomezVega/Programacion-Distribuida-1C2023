@@ -5,10 +5,24 @@ SERVER_FILE_NAME = "p_server.py"
 CLIENT_FILE_NAME = "p_client.py"
 CONFIG_RPC_NAME = "rpc.conf"
 SERVERFILE = "servidor.py"
+FUNCTION_FILE_NAME = "funciones.py"
 
 def main(file_name):
     create_client_file(file_name)
     create_server_file()
+    create_function_file(file_name)
+
+def create_function_file(file_name):
+    function_file = []
+    with open(file_name) as archivo:
+        lines = archivo.readlines()
+        for index, line in enumerate(lines):
+            if "#RPC" in line:
+                function_file.append(lines[index + 1])
+                function_file.append(lines[index + 2])
+                function_file.append(lines[index + 3])
+    
+    create_file(FUNCTION_FILE_NAME, function_file)
 
 def create_client_file(file_name):
     host, port = get_port_and_host(open_file(CONFIG_RPC_NAME))
