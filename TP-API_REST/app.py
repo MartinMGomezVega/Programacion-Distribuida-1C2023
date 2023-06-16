@@ -8,11 +8,7 @@ productos = [
     {"producto_id": 2, "nombre": "Pantalón", "stock": 5},
 ]
 
-carritos = [{
-    "carrito_id":1,
-    "user_id":1,
-    "items":productos
-}]
+carritos = []
 
 # Ruta para obtener la lista de productos
 @app.route('/productos', methods=['GET'])
@@ -97,7 +93,6 @@ def obtener_producto(producto_id):
 # Función para generar un número de seguimiento ficticio
 def generar_numero_seguimiento():
     return 12345
-
 
 if __name__ == '__main__':
     app.run()
