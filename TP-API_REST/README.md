@@ -46,24 +46,27 @@ Para ejecutar la API REST que creamos previamente, sigue estos pasos:
 
 4. Crea un entorno virtual ejecutando el siguiente comando en la terminal:
 
-   python -m venv venv
+   `python3 -m venv venv`
 
 5. Activa el entorno virtual. En Windows, ejecuta el siguiente comando:
 
-   venv\Scripts\activate
+   `venv\Scripts\activate`
 
    En macOS y Linux, ejecuta el siguiente comando:
 
-   source venv/bin/activate
+   `source venv/bin/activate`
 
 6. Instala las dependencias necesarias ejecutando el siguiente comando en la terminal:
 
-   pip install flask
+   `pip install flask`
 
 7. Una vez instaladas las dependencias, puedes ejecutar la aplicación Flask con el siguiente comando:
 
-   python app.py
+   `python3 app.py`
 
    Verás un mensaje en la terminal que indica que la aplicación se está ejecutando en un puerto determinado, por ejemplo, `Running on http://127.0.0.1:5000/`. Eso significa que la API REST está en funcionamiento.
 
 8. Ahora puedes realizar solicitudes a la API REST utilizando herramientas como cURL, Postman o incluso un navegador web.
+
+Notas:
+Si ya tienes otro servicio ejecutándose en el mismo puerto (por ejemplo, el puerto 5000), puede producirse un conflicto. Intenta cambiar el puerto en el que se ejecuta la aplicación Flask modificando el código en app.py. Por ejemplo, puedes usar el puerto 8080 cambiando app.run() por app.run(port=8080).
