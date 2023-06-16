@@ -8,7 +8,11 @@ productos = [
     {"producto_id": 2, "nombre": "Pantalón", "stock": 5},
 ]
 
-carritos = []
+carritos = [{
+    "carrito_id":1,
+    "user_id":1,
+    "items":productos
+}]
 
 # Ruta para obtener la lista de productos
 @app.route('/productos', methods=['GET'])
