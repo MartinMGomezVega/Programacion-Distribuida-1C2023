@@ -118,8 +118,8 @@ def generar_pago(carrito_id):
         if carrito['carrito_id'] == carrito_id:
             # Realizar lógica de generación de pago y actualización de stock aquí
 
-            # Verificar período de inactividad
-            if carrito.get('last_activity') and (time.time() - carrito['last_activity']) / 60 > X:
+            # Verificar período de inactividad, el periodo de inactividad maximo es de 5 minutos
+            if carrito.get('last_activity') and (time.time() - carrito['last_activity']) / 60 > 5:
                 carritos.remove(carrito)
                 return jsonify({"message": "El carrito ha sido eliminado debido a inactividad"})
 
