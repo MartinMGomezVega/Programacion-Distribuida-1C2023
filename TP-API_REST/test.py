@@ -97,10 +97,13 @@ class FlaskTestCase(unittest.TestCase):
             }
         #agregamos items al carrito
         productos_antes = self.app.get('/productos').get_json()
+        stock_original = productos_antes[0]['stock']
         self.app.patch('/carritos/{}'.format(1), json=data)
+        #pago del carrito
         response = self.app.post('/carritos/{}/pago'.format(1))
         productos_despues = self.app.get('/productos').get_json()
-        decremento = productos_antes[0]['stock'] > productos_despues[0]['stock']
+        stock_despues_pago = productos_despues[0]['stock']
+        decremento = stock_original > stock_despues_pago
         self.assertEqual(response.status_code, 200)
         self.assertEqual(decremento, True)
 
@@ -115,11 +118,47 @@ class FlaskTestCase(unittest.TestCase):
             ]
             }
         self.app.patch('/carritos/{}'.format(1), json=data)
+        #sobreescribimos el carrito
         response = self.app.put('/carritos/{}'.format(1), json={"carrito": NUEVO_CARRITO})
         productos = self.app.get('/productos').get_json()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(productos[0]['stock'], valor_esperado_stock_disponible)
 
+    def test_aumentar_cantidad_al_agregar_mismo_producto(self):
+        cantidad_esperada_antes_agregar = 5
+        cantidad_esperada_antes_agregar_adicional = 10
+        longitud_esperada = 1
+        #Creamos carrito
+        self.app.post('/carritos',json={"user_id": 123})
+        #agrego productos al carrito
+        data ={
+            "items": [
+                {"producto_id": 1,"cantidad": 5}
+            ]
+            }
+        self.app.patch('/carritos/{}'.format(1), json=data)
+        #verificamos la cantidad del producto agregado al carrito
+        items = self.app.get('/carritos/{}'.format(1)).get_json()['items']
+        cantidad_en_carrito = items[0][1]
+        self.assertEqual(cantidad_en_carrito, cantidad_esperada_antes_agregar)
+        #agregamos otro producto con el mismo id
+        self.app.patch('/carritos/{}'.format(1), json=data)
+        items = self.app.get('/carritos/{}'.format(1)).get_json()['items']
+        cantidad_en_carrito_al_agregar_adicional = items[0][1]
+        self.assertEqual(cantidad_en_carrito_al_agregar_adicional, cantidad_esperada_antes_agregar_adicional)
+        self.assertEqual(len(items), longitud_esperada)
+
+    def test_error_al_pagar_carrito_vacio(self):
+        #Creamos carrito
+        self.app.post('/carritos',json={"user_id": 456})
+
+        #pago del carrito
+        response = self.app.post('/carritos/{}/pago'.format(1))
+        self.assertEqual(response.status_code, 400)
+        #verificamos carrito sin items
+        items = self.app.get('/carritos/{}'.format(1)).get_json()['items']
+        self.assertEqual(len(items), 0)
+        
 
 if __name__ == '__main__':
     unittest.main()
