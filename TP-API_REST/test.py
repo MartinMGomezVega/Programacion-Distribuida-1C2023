@@ -54,8 +54,7 @@ class FlaskTestCase(unittest.TestCase):
     
     def test_cantidad_operaciones_mayor(self):
         #Creamos carrito
-        reponse_crear_carrito =self.app.post('/carritos',json={"user_id": 123})
-        print("respuesta: ",reponse_crear_carrito.status_code)
+        self.app.post('/carritos',json={"user_id": 123})
         #hacemos mas de 20 operaciones sobre el carrito, de get en este caso
         for _ in range(20):
             self.app.get('/carritos/{}'.format(1))
@@ -104,6 +103,8 @@ class FlaskTestCase(unittest.TestCase):
         productos_despues = self.app.get('/productos').get_json()
         stock_despues_pago = productos_despues[0]['stock']
         decremento = stock_original > stock_despues_pago
+        stock_obtenido = stock_original - 10
+        self.assertEqual(stock_despues_pago, stock_obtenido)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(decremento, True)
 
@@ -146,7 +147,7 @@ class FlaskTestCase(unittest.TestCase):
         items = self.app.get('/carritos/{}'.format(1)).get_json()['items']
         cantidad_en_carrito_al_agregar_adicional = items[0][1]
         self.assertEqual(cantidad_en_carrito_al_agregar_adicional, cantidad_esperada_antes_agregar_adicional)
-        self.assertEqual(len(items), longitud_esperada)
+        self.assertEqual(len(items), 1)
 
     def test_error_al_pagar_carrito_vacio(self):
         #Creamos carrito
@@ -158,6 +159,9 @@ class FlaskTestCase(unittest.TestCase):
         #verificamos carrito sin items
         items = self.app.get('/carritos/{}'.format(1)).get_json()['items']
         self.assertEqual(len(items), 0)
+
+    def test_inactividad_carrito(self):
+        pass
         
 
 if __name__ == '__main__':
