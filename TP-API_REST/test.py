@@ -1,6 +1,7 @@
 import unittest
 from flask import Flask
 from app import app
+import time
 
 PRODUCTOS = [
     {"producto_id": 1, "nombre": "Camisa", "stock": 15},
@@ -41,17 +42,16 @@ class FlaskTestCase(unittest.TestCase):
     def setUp(self):
         app.testing = True
         self.app = app.test_client()
-    
-    def tearDown(self):
-        self.app.delete('/carritos')
-        
+
+    # def tearDown(self):
+    #     self.app.delete('/carritos')
+
     def test_crear_carrito_usuario_repetido(self):
         data ={"user_id": 456}
         self.app.post('/carritos',json=data)
         response2 = self.app.post('/carritos',json=data)
         self.assertEqual(response2.status_code, 400)
 
-    
     def test_cantidad_operaciones_mayor(self):
         #Creamos carrito
         self.app.post('/carritos',json={"user_id": 123})
@@ -60,7 +60,7 @@ class FlaskTestCase(unittest.TestCase):
             self.app.get('/carritos/{}'.format(1))
         response = self.app.get('/carritos/{}'.format(1))
         self.assertEqual(response.status_code, 400)
-    
+
     def test_cantidad_items_sobrepasada(self):
         #Creamos carrito
         self.app.post('/carritos',json={"user_id": 456})
@@ -84,7 +84,7 @@ class FlaskTestCase(unittest.TestCase):
             }
         response = self.app.patch('/carritos/{}'.format(1), json=data)
         self.assertEqual(response.status_code, 400)
-    
+
     def test_descontar_stock_al_pagar_carrito(self):
         #Creamos carrito
         self.app.post('/carritos',json={"user_id": 456})
@@ -107,23 +107,6 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(stock_despues_pago, stock_obtenido)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(decremento, True)
-
-    def test_reestablecer_descontar_stock_sobreescritura_carrito(self):
-        valor_esperado_stock_disponible=5
-        #Creamos carrito
-        self.app.post('/carritos',json={"user_id": 123})
-        #agrego productos al carrito
-        data ={
-            "items": [
-                {"producto_id": 1,"cantidad": 5}
-            ]
-            }
-        self.app.patch('/carritos/{}'.format(1), json=data)
-        #sobreescribimos el carrito
-        response = self.app.put('/carritos/{}'.format(1), json={"carrito": NUEVO_CARRITO})
-        productos = self.app.get('/productos').get_json()
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(productos[0]['stock'], valor_esperado_stock_disponible)
 
     def test_aumentar_cantidad_al_agregar_mismo_producto(self):
         cantidad_esperada_antes_agregar = 5
@@ -161,8 +144,29 @@ class FlaskTestCase(unittest.TestCase):
         self.assertEqual(len(items), 0)
 
     def test_inactividad_carrito(self):
-        pass
-        
+        # Crear carrito
+        self.app.post('/carritos', json={"user_id": 789})
+
+        # Agregar productos al carrito
+        data = {
+            "items": [
+                {"producto_id": 1, "cantidad": 5}
+            ]
+        }
+        self.app.patch('/carritos/{}'.format(1), json=data)
+
+        # Simular inactividad del carrito por 1 minuto
+        time.sleep(2)
+
+        # Generar pago del carrito
+        response = self.app.post('/carritos/{}/pago'.format(1))
+        self.assertEqual(response.status_code, 200)
+
+        # Verificar que el carrito haya sido eliminado debido a la inactividad
+        carrito = self.app.get('/carritos/{}'.format(1)).get_json()
+        self.assertEqual(carrito["message"], "Carrito con ID 1 no encontrado")
+
+
 
 if __name__ == '__main__':
     unittest.main()

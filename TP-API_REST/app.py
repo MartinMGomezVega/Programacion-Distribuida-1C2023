@@ -38,7 +38,9 @@ def obtener_carrito(carrito_id):
             validar_items_carrito(carrito, None)
             carrito['operaciones'] += 1 
             return jsonify(carrito)
-    abort(STATUS_CODE_NOT_FOUND, "Carrito no encontrado")
+    # abort(STATUS_CODE_NOT_FOUND, "Carrito no encontrado")
+    # Si no se encuentra el carrito, retorna un objeto JSON con un mensaje de error
+    return jsonify({"message": "Carrito con ID {} no encontrado".format(carrito_id)})
 
 # Ruta para crear un carrito de compra
 @app.route('/carritos', methods=['POST'])
@@ -54,7 +56,6 @@ def crear_carrito():
     return jsonify(nuevo_carrito), STATUS_CODE_CREATED
 
 def validar_items_carrito(carrito, items):
-
     # Verificar límite de operaciones sobre el carrito
     if carrito.get('operaciones', 0) >= 20:
         CARRITOS.remove(carrito)
@@ -65,7 +66,7 @@ def validar_items_carrito(carrito, items):
         if len(carrito['items']) + len(items) > 15:
             abort(STATUS_CODE_BAD_REQUEST,
                 "Se ha excedido el límite de ítems en el carrito, se considera fraude")
-            
+
         for item in items:
             producto_id = item['producto_id']
             cantidad_producto = item['cantidad']
@@ -74,37 +75,40 @@ def validar_items_carrito(carrito, items):
                                                             filter(lambda item: item[PRODUCTO_ID] == producto_id,
                                                                     reduce(lambda item1, item2: item1 + item2,
                                                                         map(lambda carrito: carrito['items'], CARRITOS)))))
-            # Verificar stock del producto 
+            # Verificar stock del producto
             if cantidad_producto > producto['stock']:
-                abort(STATUS_CODE_BAD_REQUEST, 
+                abort(STATUS_CODE_BAD_REQUEST,
                         "La cantidad de productos con ID {} excede el stock disponible".format(producto_id))
 
             # Verifica la suma de las cantidades para un mismo producto y
             # garantizará que no exceda el límite de 10 unidades
             if cantidad_existente_en_carritos + cantidad_producto > 10:
-                abort(STATUS_CODE_BAD_REQUEST, 
+                abort(STATUS_CODE_BAD_REQUEST,
                         "La cantidad total para el producto con ID {} excede el límite de 10 unidades".format(producto_id))
 
-                
+
 def modificar_stock(carrito, operacion=TIPO_OPERACION.DESCONTAR_STOCK, items=None):
     if items:
         for item in items:
-                producto_id = item['producto_id']
-                cantidad = item['cantidad']
-                producto = obtener_producto(producto_id)
-                producto['stock'] -= cantidad 
-    else:
-        for item in carrito['items']:
-            producto_id, cantidad = (item[PRODUCTO_ID], item[CANTIDAD]) if type(item)==list else (item['producto_id'], item['cantidad'])
+            producto_id, cantidad = (item[0], item[1]) if isinstance(item, list) else (item['producto_id'], item['cantidad'])
             producto = obtener_producto(producto_id)
-            if (operacion == TIPO_OPERACION.DESCONTAR_STOCK):
+            if operacion == TIPO_OPERACION.DESCONTAR_STOCK:
                 producto['stock'] -= cantidad
             else:
-                if type(item)==list:
+                producto['stock'] += cantidad
+    else:
+        for item in carrito['items']:
+            producto_id, cantidad = (item[PRODUCTO_ID], item[CANTIDAD]) if isinstance(item, list) else (item['producto_id'], item['cantidad'])
+            producto = obtener_producto(producto_id)
+            if operacion == TIPO_OPERACION.DESCONTAR_STOCK:
+                producto['stock'] -= cantidad
+            else:
+                if isinstance(item, list):
                     item[CANTIDAD] -= cantidad
                 else:
                     item['cantidad'] -= cantidad
                 producto['stock'] += cantidad
+
 
 # Ruta para sobreescribir un carrito de compra
 @app.route('/carritos/<int:carrito_id>', methods=['PUT'])
@@ -112,9 +116,7 @@ def sobreescribir_carrito(carrito_id):
     for carrito_original in CARRITOS:
         if carrito_original['carrito_id'] == carrito_id:
             nuevo_carrito = request.json.get('carrito')
-            modificar_stock(carrito_original,TIPO_OPERACION.REESTABLECER_STOCK)
             validar_items_carrito(carrito_original, nuevo_carrito['items'])
-            modificar_stock(nuevo_carrito,TIPO_OPERACION.DESCONTAR_STOCK)
             cantidad_operaciones= carrito_original.get('operaciones') + 1
             carrito_original = nuevo_carrito
             carrito_original['operaciones'] = cantidad_operaciones
@@ -164,17 +166,21 @@ def eliminar_carritos():
 def generar_pago(carrito_id):
     for carrito in CARRITOS:
         if carrito['carrito_id'] == carrito_id:
-            # Verificar período de inactividad, el periodo de inactividad maximo es de 5 minutos
-            if int((datetime.now() - carrito['last_activity']).total_seconds()) / 60 > 5:
+            # Verificar período de inactividad, el período de inactividad máximo es de 1 minuto
+            print("Tiempo de inactividad: ", (datetime.now() - carrito['last_activity']).total_seconds() / 60)
+            if int((datetime.now() - carrito['last_activity']).total_seconds()) / 60 > 1:
                 CARRITOS.remove(carrito)
                 return jsonify({"message": "El carrito ha sido eliminado debido a inactividad"})
             if not carrito['items']:
                 abort(STATUS_CODE_BAD_REQUEST, "Carrito con ID {} no tiene items para generar pago".format(carrito_id))
 
             seguimiento_id = generar_numero_seguimiento()
+            modificar_stock(carrito, operacion=TIPO_OPERACION.DESCONTAR_STOCK, items=carrito['items'])
             CARRITOS.remove(carrito)
             return jsonify({"seguimiento_id": seguimiento_id})
-    abort(STATUS_CODE_NOT_FOUND, "Carrito con ID {} no encontrado".format(carrito_id))
+    # abort(STATUS_CODE_NOT_FOUND, "Carrito con ID {} no encontrado".format(carrito_id))
+    return jsonify({"message": "Carrito con ID {} no encontrado".format(carrito_id)})
+
 
 # Función para obtener un producto por su ID
 def obtener_producto(producto_id):
